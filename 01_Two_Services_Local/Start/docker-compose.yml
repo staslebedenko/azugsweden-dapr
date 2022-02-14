@@ -1,0 +1,18 @@
+version: '3.4'
+
+services:
+  tpaperdelivery:
+    image: ${DOCKER_REGISTRY-}tpaperdelivery
+    build:
+      context: .
+      dockerfile: TPaperDelivery/Dockerfile
+    env_file:
+      - settings.env
+
+  tpaperorders:
+    image: ${DOCKER_REGISTRY-}tpaperorders
+    build:
+      context: .
+      dockerfile: TPaperOrders/Dockerfile
+    env_file:
+      - settings.env
