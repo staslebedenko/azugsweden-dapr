@@ -1,3 +1,4 @@
+using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -33,6 +34,9 @@ namespace TPaperDelivery
 
             services.AddControllers();
             services.AddHttpClient();
+
+            var options = new ApplicationInsightsServiceOptions { ConnectionString = "InstrumentationKey=168f30f5-546f-4e1a-8607-df1c93052f2c;IngestionEndpoint=https://northeurope-0.in.applicationinsights.azure.com/" };
+            services.AddApplicationInsightsTelemetry(options: options);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

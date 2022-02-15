@@ -14,8 +14,6 @@ namespace TPaperOrders
     {
         private readonly ILogger<OrderController> _logger;
 
-        private readonly IHttpClientFactory _clientFactory;
-
         private readonly DaprClient _daprClient;
 
         public OrderController(
@@ -24,7 +22,6 @@ namespace TPaperOrders
             DaprClient daprClient)
         {
             _logger = logger;
-            _clientFactory = clientFactory;
             _daprClient = daprClient ?? throw new ArgumentNullException(nameof(daprClient));
         }
 
