@@ -161,6 +161,38 @@ az ad sp create-for-rbac --name $principalName --create-cert --cert $principalCe
 # get objectId from command output above and set it to command below 
 
 # az keyvault set-policy --name $keyvaultName --object-id b3535a27-26f0-4c59-a50a-bd13886e4185 --secret-permissions get
+
+#----------------------------------------------------------------------------------
+# Azure Container Apps
+#----------------------------------------------------------------------------------
+
+az extension add \
+  --source https://workerappscliextension.blob.core.windows.net/azure-cli-extension/containerapp-0.2.2-py2.py3-none-any.whl
+  
+az provider register --namespace Microsoft.Web
+
+acaGroupName=ms-action-containerapp$postfix
+location=northeurope
+logAnalyticsWorkspace=container-apps-logs$postfix
+containerAppsEnv=shared-environment$postfix
+
+az group create --name $acaGroupName --location $location
+
+az monitor log-analytics workspace create \
+--resource-group $acaGroupName --workspace-name $logAnalyticsWorkspace
+
+logAnalyticsWorkspaceClientId=`az monitor log-analytics workspace show --query customerId -g $acaGroupName -n $logAnalyticsWorkspace -o tsv | tr -d '[:space:]'`
+
+logAnalyticsWorkspaceClientSecret=`az monitor log-analytics workspace get-shared-keys --query primarySharedKey -g $acaGroupName -n $logAnalyticsWorkspace -o tsv | tr -d '[:space:]'`
+
+az containerapp env create \
+--name $containerAppsEnv \
+--resource-group $acaGroupName \
+--logs-workspace-id $logAnalyticsWorkspaceClientId \
+--logs-workspace-key $logAnalyticsWorkspaceClientSecret \
+--instrumentation-key $instrumentationKey \
+--location $location
+
 #----------------------------------------------------------------------------------
 # SQL connection strings
 #----------------------------------------------------------------------------------
@@ -173,42 +205,11 @@ printf "\n\nRun string below in local cmd prompt to assign secret to environment
 printf "\n\nRun string below in local cmd prompt to assign secret to environment variable ServiceBusString:\nsetx ServiceBusString \"$serviceBusString\"\n\n"
 
 echo "Update open-telemetry-collector-appinsights.yaml in Step 4 End => <INSTRUMENTATION-KEY> value with:  " $instrumentationKey
+
+
+
 ```
-
-Important thing is to setup network connectivity between deployed kubernetes cluster and deployed database.
-
-There are two steps to do it via Azure Portal.
-
-Kubernetes connectivity
-* Navigate into resource group MC_msaction-cluster_msaction-cluster_northeurope and open
-* Open Virtual network there
-* Open Service endpoints and click add
-* Select Microsoft.SQL from dropdown and select aks-vnet in the next dropdown.
-* Add additional integration with Microsoft.ServiceBus
-
-SQL Server connectivity.
-* Navigate to the resource group - ms-action-dapr-data
-* Open Sql Server ms-action-dapr
-* Click Show Firewall
-* On top click add client IP address, so you can access sql server from your work machine
-* Click  Add existing virtual network + Create new virtual network
-* Add aks-vnet with a proper name(check name via AKS cluster group)
-* Most important step - click Save in the portal UI
-
-## Step 1. Monolithic Web API initial split.
-
-We will split Entity Framework context into two parts that can use the same(or different databases).
-
-Gradual split in code is a key to successful migration and can be done as a part of normal development process.
-
-Start folder contains monolith solution 
-
-End folder contains monolith with EF context split in two for the different schema in the same database.
-
-
-
-
-## Step 2. Split in two projects, docker compose and DAPR initialization.
+## Step 1. Two projects, docker compose and DAPR initialization.
 We adding containerization via Visual Studio tooling and manually adding DAPR sidecar configuration for each server.
 
 Start folder contains solution with two projects.
@@ -224,7 +225,7 @@ End folder contains solution with DAPR, service invocation via HTTP and docker c
 
 Lets start with right clicking on each solution and adding orchestration with Container orchestration via Docker compose. Visual studio will generate docker compose files for you. 
 
-## Step 3. Application deployment to Azure Kubernetes service.
+## Step 2. Application deployment to Azure Kubernetes service.
 We will create AKS manifests for our services and add DAPR sections.
 Deploy dapr to AKS cluster and add containers to the private repository.
 
@@ -333,7 +334,7 @@ kubectl logs tpaperdelivery-8c4bdc475-j89kx tpaperdelivery
 
 
 
-## Step 4. Introduction to the DAPR pubsub.
+## Step 3. Introduction to the DAPR pubsub.
 We will deploy DAPR pubsub component to Azure. Make changes to our code and take a look into the pod logs to see whats happening.
 
 Start folder contains all needed files for this step.
@@ -407,11 +408,8 @@ docker push msactionregistry.azurecr.io/tpaperdelivery:v4
 kubectl apply -f tpaperorders-deploy.yaml
 kubectl apply -f tpaperdelivery-deploy.yaml
 ```
-
 	
-	
-	
-## Step 5. Secrets via Azure KeyVault and Azure functions component.
+## Step 4. Secrets via Azure KeyVault and Dapr State component.
 
 * We created an Azure Key Vault with our infrastructure beforehand. 
 But steps below included just in case.
@@ -537,7 +535,26 @@ Now we need to update manifest of delivery service
   kubectl apply -f tpaperorders-deploy.yaml
   ```
 Make sure that `secretstores.azure.keyvault` is loaded successfully in `daprd` sidecar log
-  
+ 
+## Step 5. Azure Container apps introduction.
+	
+```bash
+registryPassword="okDW9rjpguB=BH3y3fl1KcPJqQD0U4jF"
+echo $registryPassword
+
+az containerapp create \
+--name tamopsapp \
+--resource-group $RESOURCE_GROUP \
+--environment $CONTAINERAPPS_ENVIRONMENT \
+--image msactionregistry.azurecr.io/sampleapp:latest \
+--min-replicas 2 \
+--max-replicas 2 \
+--registry-login-server msactionregistry.azurecr.io \
+--registry-username msactionregistry \
+--registry-password $registryPassword \
+--target-port 80 \
+--ingress 'external'	
+```
   
 ## Useful commands and notes.  
 
