@@ -1,14 +1,14 @@
-# dapr-partner-workshop
+# Azure User Group Sweden Dapr
 
 ## Steps
 The workshop is build around five steps.
 
-0. Deployment of required Azure infrastructure, databases for step one and two, along with AKS for 3 and 4.
-1. Building the monolithic Web API solution and splitting its databases.
+1. Two C# services with one dapr with http call and docker compose.
+1. Setup of Kubernetes cluster, Azure Container Apps and deployment.
 2. Splitting solution into two projects, containeraizing them and adding DAPR runtime.
-3. Create AKS manifest, setting up DAPR in Azure Kubernetes cluster and deploying solution to Cloud.
-4. Adding DAPR pubsub component and RabbitMQ container. Changing solution code to work with a pubsub.
-Analyzing issues and solving them with logging.
+3. Adding DAPR pub/sub component and connecting service via topic.
+4. Storage component for DAPR via Azure Table Storage.
+5. Adding secrets and observability
 
 ## Prerequisites
 
@@ -321,7 +321,7 @@ We cam observe our deployment with get all command and checking of external publ
 
 ```
 20.67.14.15/api/order/create/1
-20.67.15.202/api/delivery/get
+20.67.15.202/api/deliveries/get
 ```
 
 In case of the problems we need to investigate logs via command prompt.
@@ -330,9 +330,6 @@ In case of the problems we need to investigate logs via command prompt.
 kubectl logs tpaperdelivery-8c4bdc475-j89kx daprd
 kubectl logs tpaperdelivery-8c4bdc475-j89kx tpaperdelivery
 ```
-
-
-
 
 ## Step 3. Introduction to the DAPR pubsub.
 We will deploy DAPR pubsub component to Azure. Make changes to our code and take a look into the pod logs to see whats happening.
@@ -408,8 +405,10 @@ docker push msactionregistry.azurecr.io/tpaperdelivery:v4
 kubectl apply -f tpaperorders-deploy.yaml
 kubectl apply -f tpaperdelivery-deploy.yaml
 ```
+
+## Step 4. DAPR storage component.	
 	
-## Step 4. Secrets via Azure KeyVault and Dapr State component.
+## Step 5. Secrets via Azure KeyVault and Dapr State component.
 
 * We created an Azure Key Vault with our infrastructure beforehand. 
 But steps below included just in case.
