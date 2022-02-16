@@ -1,43 +1,55 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Dapr;
+using Microsoft.Extensions.Logging;
 
 namespace TPaperDelivery
 {
     [ApiController]
-    [Route("api/[controller]")]
     public class DeliveryController
     {
-        [HttpGet]
-        [Route("create/{clientId}/{ediOrderId}/{productCode}/{number}")]
-        public async Task<IActionResult> ProcessEdiOrder(
-            int clientId,
-            int ediOrderId,
-            int productCode,
-            int number,
-            CancellationToken cts)
+
+        private readonly ILogger<DeliveryController> _logger;
+
+        public DeliveryController(ILogger<DeliveryController> logger)
         {
-            Product product = new Product { Id = 1, ExternalCode = 2 };
+            _logger = logger;
+        }
+
+        [Topic("delivery", "create")]
+        [HttpPost]
+        [Route("createdelivery")]
+        public async Task<IActionResult> ProcessEdiOrder(Delivery delivery)
+        {
+            _logger.LogWarning("Triggered method");
+
+            var product = new Product { Id = 0, ExternalCode = 5, Name = "Default" };
 
             var newDelivery = new Delivery
             {
                 Id = 0,
-                ClientId = clientId,
-                EdiOrderId = ediOrderId,
-                Number = number,
+                ClientId = delivery.ClientId,
+                EdiOrderId = delivery.EdiOrderId,
+                Number = delivery.Number,
                 ProductId = product.Id,
                 ProductCode = product.ExternalCode,
                 Notes = "Prepared for shipment"
             };
 
-            return new OkObjectResult(newDelivery);
+            _logger.LogWarning("Saved delivery");
+
+            return new OkObjectResult("");
         }
 
         [HttpGet]
-        [Route("health")]
+        [Route("api/deliveries/get")]
         public async Task<IActionResult> Get(CancellationToken cts)
         {
-            return new OkObjectResult("Started");
+            var registeredDeliveries = new List<Delivery>();
+
+            return new OkObjectResult(registeredDeliveries);
         }
     }
 }

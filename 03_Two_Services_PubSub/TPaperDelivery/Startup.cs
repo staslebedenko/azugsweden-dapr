@@ -32,7 +32,7 @@ namespace TPaperDelivery
                     configuration.GetSection("ProjectOptions").Bind(settings);
                 });
 
-            services.AddControllers();
+            services.AddControllers().AddDapr();
             services.AddHttpClient();
 
             var options = new ApplicationInsightsServiceOptions { ConnectionString = "InstrumentationKey=168f30f5-546f-4e1a-8607-df1c93052f2c;IngestionEndpoint=https://northeurope-0.in.applicationinsights.azure.com/" };
@@ -51,8 +51,11 @@ namespace TPaperDelivery
 
             app.UseAuthorization();
 
+            app.UseCloudEvents();
+
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapSubscribeHandler();
                 endpoints.MapControllers();
             });
         }

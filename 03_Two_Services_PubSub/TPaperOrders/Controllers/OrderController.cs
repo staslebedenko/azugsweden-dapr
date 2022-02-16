@@ -2,7 +2,6 @@ using Dapr.Client;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,7 +17,6 @@ namespace TPaperOrders
 
         public OrderController(
             ILogger<OrderController> logger,
-            IHttpClientFactory clientFactory,
             DaprClient daprClient)
         {
             _logger = logger;
@@ -40,22 +38,29 @@ namespace TPaperOrders
                 Quantity = quantity
             };
 
-            DeliveryModel savedDelivery = await CreateDeliveryForOrder(order, cts);
+            Delivery savedDelivery = await CreateDeliveryForOrder(order, cts);
 
             string responseMessage = $"Accepted EDI message {order.Id} and created delivery {savedDelivery?.Id}";
 
             return new OkObjectResult(responseMessage);
         }
 
-        private async Task<DeliveryModel> CreateDeliveryForOrder(EdiOrder savedOrder, CancellationToken cts)
+        private async Task<Delivery> CreateDeliveryForOrder(EdiOrder savedOrder, CancellationToken cts)
         {
+            var newDelivery = new Delivery
+            {
+                Id = 0,
+                ClientId = savedOrder.ClientId,
+                EdiOrderId = savedOrder.Id,
+                Number = savedOrder.Quantity,
+                ProductId = 0,
+                ProductCode = savedOrder.ProductCode,
+                Notes = "Prepared for shipment"
+            };
 
-            var route = $"api/delivery/create/{savedOrder.ClientId}/{savedOrder.Id}/{savedOrder.ProductCode}/{savedOrder.Quantity}";
+            await _daprClient.PublishEventAsync<Delivery>("delivery", "create", newDelivery, cts);
 
-            DeliveryModel savedDelivery = await _daprClient.InvokeMethodAsync<DeliveryModel>(
-                HttpMethod.Get, "tpaperdelivery", route, cts);
-
-            return savedDelivery;
+            return newDelivery;
         }
     }
 }
