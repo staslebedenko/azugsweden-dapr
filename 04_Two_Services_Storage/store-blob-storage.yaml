@@ -1,0 +1,15 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: blobstore
+  namespace: default
+spec:
+  type: state.azure.blobstorage
+  version: v1
+  metadata:
+  - name: accountName
+    value: "msactionstorage"
+  - name: accountKey
+    value: "AIOUVClQmNFeq94NLuiVS+crCfknjAvwUZ8ZPSG4aVIBAPgBUmAgAf84md9aBhr+bHRurLB2P1KTs8GqJDzWeg=="
+  - name: containerName
+    value: "blobstore"

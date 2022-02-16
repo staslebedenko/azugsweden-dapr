@@ -2,6 +2,7 @@ using Dapr.Client;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -38,9 +39,11 @@ namespace TPaperOrders
                 Quantity = quantity
             };
 
+            string orderString = await SaveOrder(order);
+
             Delivery savedDelivery = await CreateDeliveryForOrder(order, cts);
 
-            string responseMessage = $"Accepted EDI message {order.Id} and created delivery {savedDelivery?.Id}";
+            string responseMessage = $"Accepted EDI message {orderString} to store and created delivery {savedDelivery?.Id}";
 
             return new OkObjectResult(responseMessage);
         }
@@ -61,6 +64,13 @@ namespace TPaperOrders
             await _daprClient.PublishEventAsync<Delivery>("delivery", "create", newDelivery, cts);
 
             return newDelivery;
+        }
+
+        private async Task<string> SaveOrder(EdiOrder order)
+        {
+            string jsonString = JsonSerializer.Serialize(order);
+            await _daprClient.SaveStateAsync("blobstore", "order_new", jsonString);
+            return await _daprClient.GetStateAsync<string>("blobstore", "order_new");
         }
     }
 }

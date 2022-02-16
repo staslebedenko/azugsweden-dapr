@@ -1,21 +1,26 @@
+using Dapr;
+using Dapr.Client;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Dapr;
-using Microsoft.Extensions.Logging;
 
 namespace TPaperDelivery
 {
     [ApiController]
     public class DeliveryController
     {
+        private readonly DaprClient _daprClient;
 
         private readonly ILogger<DeliveryController> _logger;
 
-        public DeliveryController(ILogger<DeliveryController> logger)
+        public DeliveryController(ILogger<DeliveryController> logger, DaprClient daprClient)
         {
             _logger = logger;
+            _daprClient = daprClient ?? throw new ArgumentNullException(nameof(daprClient));
         }
 
         [Topic("delivery", "create")]
@@ -40,6 +45,8 @@ namespace TPaperDelivery
 
             _logger.LogWarning("Saved delivery");
 
+            string savedDelivery = await SaveDelivery(newDelivery);
+
             return new OkObjectResult("");
         }
 
@@ -47,9 +54,16 @@ namespace TPaperDelivery
         [Route("api/deliveries/get")]
         public async Task<IActionResult> Get(CancellationToken cts)
         {
-            var registeredDeliveries = new List<Delivery>();
+            var registeredDeliveries = await _daprClient.GetStateAsync<string>("blobstore", "delivery_new");
 
             return new OkObjectResult(registeredDeliveries);
+        }
+
+        private async Task<string> SaveDelivery(Delivery delivery)
+        {
+            string jsonString = JsonSerializer.Serialize(delivery);
+            await _daprClient.SaveStateAsync("blobstore", "delivery_new", jsonString);
+            return await _daprClient.GetStateAsync<string>("blobstore", "delivery_new");
         }
     }
 }
