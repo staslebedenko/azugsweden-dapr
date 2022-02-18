@@ -406,7 +406,9 @@ kubectl apply -f tpaperorders-deploy.yaml
 kubectl apply -f tpaperdelivery-deploy.yaml
 ```
 
-## Step 4. DAPR storage component.	
+## Step 4. DAPR storage component.
+
+And a little bit of debugging with logs and overall applicationm logging.
 	
 ## Step 5. Secrets via Azure KeyVault and Dapr State component.
 
